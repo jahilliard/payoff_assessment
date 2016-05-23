@@ -1,0 +1,210 @@
+---
+title: "Payoff Intern Assessment"
+author: "Justin Hilliard"
+date: "May 20, 2016"
+output: 
+  html_document:
+    toc:  true
+    toc_float:  true
+    code_folding:  hide
+---
+
+***
+***
+
+# Prepare Environment {.tabset}
+
+## Load ggplot and theme
+
+```{r warning=FALSE, message=FALSE}
+library("ggplot2")
+
+jhilliard_theme <- theme(
+  panel.background = element_rect(fill = "white"),
+  axis.title.x = element_text(family = "Garamond", size = 14, color = "black"),
+  axis.title.y = element_text(family = "Garamond", size = 14, color = "black"),
+  plot.title = element_text(family = "Garamond", size = 18, color = "black"),
+  legend.text = element_text(family = "Garamond", size = 10, color = "black"),
+  legend.position = "right",
+  legend.title = element_text(family = "Garamond", size = 12, color = "black"),
+  axis.ticks = element_line(color = "black"),
+  axis.text = element_text(family = "Garamond", size = 10, color = "black")
+)
+```
+
+## Open DB Connection
+
+```{r warning=FALSE, message=FALSE}
+# load R Postgres Lib
+library("DBI")
+library("RPostgreSQL")
+# Load SQL DF lib
+library("sqldf")
+
+
+# Establish connection to PoststgreSQL using RPostgreSQL
+drv <- dbDriver("PostgreSQL")
+con <- dbConnect(drv, dbname="intern", 
+                   host="payoff-showtime.ctranyfsb6o1.us-east-1.rds.amazonaws.com", 
+                   port=5432, user="payoff_intern", password="reallysecure")
+
+```
+
+## Ensure tables exist
+
+```{r warning=FALSE, message=FALSE, echo=FALSE, results = "hide"}
+# confirm all tables exist
+dbExistsTable(con, "lending_club_2007_2011")
+dbExistsTable(con, "lending_club_2012_2013")
+dbExistsTable(con, "lending_club_2014")
+dbExistsTable(con, "lending_club_2015")
+```
+
+## Sample Query And Analysis
+
+```{r warning=FALSE, message=FALSE, cache=TRUE}
+#Load Data
+loan_amnt_2015 <- sqldf("select lc_15.loan_amnt, lc_15.issue_d from lending_club_2015 as lc_15", connection = con, drv = drv)
+```
+
+```{r warning=FALSE, message=FALSE}
+# Calculate Mean and Median 
+loan_amnt_2015_median <- median(loan_amnt_2015$loan_amnt)
+loan_amnt_2015_mean <- mean(loan_amnt_2015$loan_amnt)
+
+# Visualize loan Amounts
+ggplot(loan_amnt_2015, aes(x=loan_amnt)) + geom_density(aes(binwidth = 10000)) + jhilliard_theme + ggtitle("2015 Lending Club Loan Amounts Density Plot") + geom_vline(xintercept = loan_amnt_2015_mean, size = 1, colour = "green") + geom_vline(xintercept = loan_amnt_2015_median, size = 1, colour = "red") + jhilliard_theme
+```
+
+2015 LC Loan Amount break down 
+
+Statistic  | Value (in $)
+------------- | -------------
+Minimum | 1000
+1st Quartile | 8500 
+Median | 14000
+Mean | 15240 
+3rd Quartile | 20000
+Max | 35000 
+
+***
+***
+
+# Run Analysis
+
+***
+***
+
+# Set A {.tabset}
+
+## Monthly Total Loan Volume by Dollars and by Average Loan Size
+
+```{r warning=FALSE, message=FALSE, cache=TRUE}
+lc_07_11_avg_by_month <- sqldf("select lc_tab.issue_d as month_year, sum(lc_tab.loan_amnt), avg(lc_tab.loan_amnt) from lending_club_2007_2011 as lc_tab where lc_tab.issue_d is not null and lc_tab.loan_amnt is not null group by month_year order by to_timestamp(lc_tab.issue_d, 'Mon-YYYY') ASC", connection = con, drv = drv)
+
+lc_12_13_avg_by_month <- sqldf("select lc_tab.issue_d as month_year, sum(lc_tab.loan_amnt), avg(lc_tab.loan_amnt) from lending_club_2012_2013 as lc_tab where lc_tab.issue_d is not null and lc_tab.loan_amnt is not null group by month_year order by to_timestamp(lc_tab.issue_d, 'Mon-YYYY') ASC", connection = con, drv = drv)
+
+lc_14_avg_by_month <- sqldf("select lc_tab.issue_d as month_year, sum(lc_tab.loan_amnt), avg(lc_tab.loan_amnt) from lending_club_2014 as lc_tab where lc_tab.issue_d is not null and lc_tab.loan_amnt is not null group by month_year order by to_timestamp(lc_tab.issue_d, 'Mon-YYYY') ASC", connection = con, drv = drv)
+
+lc_15_avg_by_month <- sqldf("select lc_tab.issue_d as month_year, sum(lc_tab.loan_amnt), avg(lc_tab.loan_amnt) from lending_club_2015 as lc_tab where lc_tab.issue_d is not null and lc_tab.loan_amnt is not null group by month_year order by to_timestamp(lc_tab.issue_d, 'Mon-YYYY') ASC", connection = con, drv = drv)
+
+#bind all data vertically with Rbind
+avg_summary <- rbind(lc_07_11_avg_by_month, lc_12_13_avg_by_month, lc_14_avg_by_month, lc_15_avg_by_month)
+```
+
+```{r warning=FALSE, message=FALSE, cache=TRUE}
+library("knitr")
+library("scales")
+
+avg_summary_tab <- avg_summary
+
+trim <- function (x) gsub("^\\s+|\\s+$", "", x)
+
+avg_summary$month_year <- trim(avg_summary$month_year)
+avg_summary$month_year_day <- paste(avg_summary$month_year,"-01", sep = "")
+avg_summary$month_year_date <- as.Date(avg_summary$month_year_day, format = "%b-%Y-%d")
+avg_summary$month_year_format <- as.POSIXct(avg_summary$month_year_date)
+
+# scatter plot over time 
+ggplot(avg_summary, aes(x=month_year_format,y=avg)) + geom_point() + scale_x_datetime(labels = date_format("%Y")) + geom_smooth(method = "lm", se = FALSE) + ggtitle("Average Loan Amount (in $) by Year") + jhilliard_theme
+
+# Format Data frame with knitr
+kable(avg_summary_tab, digits = 2, caption = 'Loan Amounts by Year and Month')
+```
+
+## Default Rates by Loan Grade
+
+```{r warning=FALSE, message=FALSE, cache=TRUE}
+library(gridExtra)
+
+# default_07_11 <- sqldf("select default_tab.grade, default_loan_count, total_loan_count, default_loan_amnt_bal, total_loan_amnt_bal from (select grade, count(*) as default_loan_count, sum(tot_cur_bal) as default_loan_amnt_bal from lending_club_2007_2011 as lc_tab where lc_tab.loan_status = 'Default' group by lc_tab.grade) as default_tab inner join (select grade, count(*) as total_loan_count, sum(tot_cur_bal) as total_loan_amnt_bal from lending_club_2015 as lc_tab group by lc_tab.grade) as total_tab on default_tab.grade = total_tab.grade", connection = con, drv = drv)
+
+# default_12_13 <- sqldf("select default_tab.grade, default_loan_count, total_loan_count, default_loan_amnt_bal, total_loan_amnt_bal from (select grade, count(*) as default_loan_count, sum(tot_cur_bal) as default_loan_amnt_bal from lending_club_2012_2013 as lc_tab where lc_tab.loan_status = 'Default' group by lc_tab.grade) as default_tab inner join (select grade, count(*) as total_loan_count, sum(tot_cur_bal) as total_loan_amnt_bal from lending_club_2015 as lc_tab group by lc_tab.grade) as total_tab on default_tab.grade = total_tab.grade", connection = con, drv = drv)
+
+#default_14 <- sqldf("select default_tab.grade, default_loan_count, total_loan_count, default_loan_amnt_bal, total_loan_amnt_bal from (select grade, count(*) as default_loan_count, sum(tot_cur_bal) as default_loan_amnt_bal from lending_club_2014 as lc_tab where lc_tab.loan_status = 'Default' group by lc_tab.grade) as default_tab inner join (select grade, count(*) as total_loan_count, sum(tot_cur_bal) as total_loan_amnt_bal from lending_club_2015 as lc_tab group by lc_tab.grade) as total_tab on default_tab.grade = total_tab.grade", connection = con, drv = drv)
+
+default_counts <- sqldf("select default_tab.grade, default_loan_amnt_bal, sum(total_loan_amnt_bal) as total_loan_amnt_bal from ( select grade,  sum(default_loan_amnt_bal) as default_loan_amnt_bal from (
+select grade, tot_cur_bal as default_loan_amnt_bal from lending_club_2012_2013  as lc_tab_12_13 where lc_tab_12_13.loan_status = 'Default'
+union
+select grade, tot_cur_bal as default_loan_amnt_bal from lending_club_2014 as lc_tab_14 where lc_tab_14.loan_status = 'Default'
+union
+select grade, tot_cur_bal as default_loan_amnt_bal from lending_club_2015  as lc_tab_15 where lc_tab_15.loan_status = 'Default') as default_union
+group by default_union.grade
+                    ) as default_tab inner join ( select grade,  sum(total_loan_amnt_bal) as total_loan_amnt_bal from (
+select grade, tot_cur_bal as total_loan_amnt_bal from lending_club_2012_2013  as lc_tab_12_13
+union
+select grade, tot_cur_bal as total_loan_amnt_bal from lending_club_2014 as lc_tab_14
+union
+select grade, tot_cur_bal as total_loan_amnt_bal from lending_club_2015  as lc_tab_15) as tot_union
+group by tot_union.grade
+) as total_tab on default_tab.grade = total_tab.grade", connection = con, drv = drv)
+
+default_counts$default_percent_amnt <- (default_counts$default_loan_amnt_bal/default_counts$total_loan_amnt_bal)*100
+
+default_counts$default_ratio_amnt <- (default_counts$default_loan_amnt_bal/default_counts$total_loan_amnt_bal)
+
+presentation_tab <- as.data.frame(default_counts$grade)
+presentation_tab$default_ratio_loan_amnt <- default_counts$default_ratio_amnt
+
+names(presentation_tab)[names(presentation_tab) == 'default_counts$grade'] <- 'grade'
+
+presentation_tab <- presentation_tab[order(presentation_tab$grade),]
+default_counts <- default_counts[order(default_counts$grade),] 
+
+kable(presentation_tab, caption = 'Default Ratios')
+
+ratio_dollar <- ggplot(presentation_tab, aes(x = grade, y = default_ratio_loan_amnt)) + geom_bar( position = "dodge", stat = "identity") + ggtitle("Default Ratio of Loan \nby Dollar Amount by Grade ") + jhilliard_theme
+
+ratio_dollar
+
+```
+
+## Adjusting for Risk
+
+
+
+
+
+***
+***
+
+# Set B {.tabset}
+
+## Data 
+
+There seems to be a lot of missing data from the 2007 to 2011 data
+
+
+***
+***
+
+
+# Close DB Connection
+
+```{r warning=FALSE, message=FALSE, echo=FALSE, results = "hide"}
+# Closes the connection
+dbDisconnect(con)
+
+# Frees all the resources on the driver
+dbUnloadDriver(drv)
+```
