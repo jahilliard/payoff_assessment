@@ -6,7 +6,7 @@ output:
   html_document:
     toc:  true
     toc_float:  true
-    code_folding:  hide
+    code_folding: hide
 ---
 
 ***
@@ -340,18 +340,32 @@ correlation_tab$charge_off_correlation_for_predictors <- correlation_predictors$
 kable(correlation_tab)
 ```
 
-That said within the subset of continuous variables used to determine correlation on whether a loan was defaulted or charged off, there does not seem to be any variables in this subset that very strongly correlate with a loan being charged off or in default.  Interest rate and Grade have the largest correlation.
+That said, within the subset of continuous variables used to determine predictors by correlation on whether a loan was defaulted or charged off, there does not seem to be any variables in this subset that very strongly correlate with a loan being charged off or in default.  
+
+__Interest rate and Grade have the largest correlation to loans being charged off or in default, but it is still not a great predictor.__
 
 ***
 ***
 
 # Set B {.tabset}
 
-## Data 
+## Data Errors
 
-There seems to be a lot of missing data from the 2007 to 2011 data
-The formats are inconsistent across years 
-Fico scores do not seem to exist in the 2015 table
+a. The data is inconsistent across the year tables (ie., data types).  I would not have structured the data like this I probably would have broken the data down into tables that were more dependent on field type optimizing for 3NF.  There also seems to be fields missing across years (ie., Fico scores do not exist for 2015 table)
+
+b.  I would have made the free-form data exclusivley categorical dropdowns.  It is difficult to analyze data when it is not standardized.  For example, look at the title field that was pulled from the lending_club_2007_2011 table.
+
+__Title__ 
+
+1. Computer                              
+2. bike                              
+3. real estate business                  
+4. personel                              
+5. Personal                              
+6. My wedding loan I promise to pay back 
+
++ "My wedding loan I promise to pay back" while comical is not helpful as an analyst.  Also misspelled words, such as "personel", are not helpful.
+
 
 ## Concept Explination
 
@@ -360,11 +374,11 @@ _______________________
 
 #### Math Background
 
-+ K-means clustering is an unsupervised learning algorithm where we aim to minimize the squared-error of data points from a variable number of centroids.  This is done to cluster data points together and classify new data points.  We iterate over the data then readjust the centroids until the centroids are optimimally minimizing the squared-error.  This is typically known as a greedy algorithm.
++ K-means clustering is an unsupervised learning algorithm where we aim to minimize the squared-error of data points from a variable number of centroids.  This is done to cluster data points together and classify new data points.  We iterate over the data then readjust the centroids until the centroids are optimally minimizing the squared-error.  This is typically known as a greedy algorithm.
 
 #### Non-Math Background
 
-+  This is a machine learning algorithm that we can use to classify data points to determine which points are most similar to one another.  The data points are clustered into a variable number of clusters determined by the analyst.  For example, Lets say we have a data set with 100 Banana surface areas and 100 Apple surface areas.  We can use K-means clustering algorithm with the input of 2 clusters to determine which data points are Bananas and which data points are Apples.
++  This is a machine learning algorithm that we can use to classify data points to determine which points are most similar to one another.  The data points are clustered into a variable number of clusters determined by the analyst.  For example, let's say we had a data set with 200 data points, 100 of which measure the surface area of 100 Bananas, 100 of which measure the surface area of 100 Apples.  We can use K-means clustering algorithm with the input of 2 clusters to determine which data points are Bananas and which data points are Apples.
 
 
 ***

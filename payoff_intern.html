@@ -1073,7 +1073,7 @@ kable(rate_tab)</code></pre>
 </tr>
 </tbody>
 </table>
-<p>Assuming the operational costs are lower than the difference of chargeoff rates + default rates seems like we are chargin a appropriate interest rate for risk.</p>
+<p>Assuming the operational costs are lower than the difference of charge-off rates + default rates seems like we are charging a appropriate interest rate for risk.</p>
 </div>
 <div id="predictors" class="section level2">
 <h2>Predictors</h2>
@@ -1167,7 +1167,7 @@ kable(con_grade_charge)</code></pre>
 ## 
 ## data:  con_grade_charge
 ## X-squared = 4652.2, df = 6, p-value &lt; 2.2e-16</code></pre>
-<p>Because of the extremley small p value we can conclude that grade and chargeoff rate are not independent</p>
+<p>Because of the extremely small p value we can conclude that grade and charge-off rate are not independent</p>
 <pre class="r"><code>predictor$is_charge_off &lt;- ifelse(predictor$loan_status == &quot;Charged Off&quot;, 1, ifelse(predictor$loan_status == &quot;Default&quot;,1,0))
 
 predictor$grade_num &lt;- ifelse(predictor$grade == &quot;A&quot;, 6, ifelse(predictor$grade == &quot;B&quot;,5,  ifelse(predictor$grade == &quot;C&quot;,4, ifelse(predictor$grade == &quot;D&quot;,3, ifelse(predictor$grade == &quot;E&quot;,2, ifelse(predictor$grade == &quot;F&quot;,1,  ifelse(predictor$grade == &quot;G&quot;,0,0)))))))
@@ -1344,26 +1344,54 @@ kable(correlation_tab)</code></pre>
 </tr>
 </tbody>
 </table>
-<p>That said within the subset of continuous varibles used to determine correlation on whether a loan was defaulted or charged off, there does not seem to be any variables in this subset that very srtongly correlate with a loan being charged off or in default. Interest rate and Grade have the largest correlation.</p>
+<p>That said, within the subset of continuous variables used to determine predictors by correlation on whether a loan was defaulted or charged off, there does not seem to be any variables in this subset that very strongly correlate with a loan being charged off or in default.</p>
+<p><strong>Interest rate and Grade have the largest correlation to loans being charged off or in default, but it is still not a great predictor.</strong></p>
 <hr />
 <hr />
 </div>
 </div>
 <div id="set-b" class="section level1 tabset">
 <h1>Set B</h1>
-<div id="data" class="section level2">
-<h2>Data</h2>
-<p>There seems to be a lot of missing data from the 2007 to 2011 data The formats are inconsistent across years Fico scores do not seem to exist in the 2015 table</p>
+<div id="data-errors" class="section level2">
+<h2>Data Errors</h2>
+<ol style="list-style-type: lower-alpha">
+<li><p>The data is inconsistent across the year tables (ie., data types). I would not have structured the data like this I probably would have broken the data down into tables that were more dependent on field type optimizing for 3NF. There also seems to be fields missing across years (ie., Fico scores do not exist for 2015 table)</p></li>
+<li><p>I would have made the free-form data exclusivley categorical dropdowns. It is difficult to analyze data when it is not standardized. For example, look at the title field that was pulled from the lending_club_2007_2011 table.</p></li>
+</ol>
+<p><strong>Title</strong></p>
+<ol style="list-style-type: decimal">
+<li>Computer<br />
+</li>
+<li>bike<br />
+</li>
+<li>real estate business<br />
+</li>
+<li>personel<br />
+</li>
+<li>Personal<br />
+</li>
+<li>My wedding loan I promise to pay back</li>
+</ol>
+<ul>
+<li>“My wedding loan I promise to pay back” while comical is not helpful as an analyst. Also misspelled words, such as “personel”, are not helpful.</li>
+</ul>
 </div>
 <div id="concept-explination" class="section level2">
 <h2>Concept Explination</h2>
 <div id="k-means-clustering" class="section level3">
 <h3>K-means Clustering</h3>
+<hr />
 <div id="math-background" class="section level4">
 <h4>Math Background</h4>
+<ul>
+<li>K-means clustering is an unsupervised learning algorithm where we aim to minimize the squared-error of data points from a variable number of centroids. This is done to cluster data points together and classify new data points. We iterate over the data then readjust the centroids until the centroids are optimally minimizing the squared-error. This is typically known as a greedy algorithm.</li>
+</ul>
 </div>
 <div id="non-math-background" class="section level4">
 <h4>Non-Math Background</h4>
+<ul>
+<li>This is a machine learning algorithm that we can use to classify data points to determine which points are most similar to one another. The data points are clustered into a variable number of clusters determined by the analyst. For example, let’s say we had a data set with 200 data points, 100 of which measure the surface area of 100 Bananas, 100 of which measure the surface area of 100 Apples. We can use K-means clustering algorithm with the input of 2 clusters to determine which data points are Bananas and which data points are Apples.</li>
+</ul>
 <hr />
 <hr />
 </div>
